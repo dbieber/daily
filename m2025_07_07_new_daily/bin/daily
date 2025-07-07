@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""
+Daily script - Creates new exploration directories in the daily repo.
+Usage: daily idea-name
+"""
+
+import os
+import sys
+from datetime import datetime
+
+# Hard-coded constant for the daily repo path
+DAILY_REPO_PATH = "/Users/dbieber/code/github/dbieber/daily"
+
+def create_daily_directory(idea_name):
+    """Create a new daily exploration directory with the given idea name."""
+
+    # Get current date in YYYY_MM_DD format
+    today = datetime.now()
+    date_str = today.strftime("%Y_%m_%d")
+    
+    # Create directory name with format mYYYY_MM_DD_idea_name
+    dir_name = f"m{date_str}_{idea_name}"
+    full_path = os.path.join(DAILY_REPO_PATH, dir_name)
+    
+    # Check if directory already exists
+    if os.path.exists(full_path):
+        print(f"Directory {dir_name} already exists!")
+        return False
+    
+    # Create the directory
+    os.makedirs(full_path)
+    
+    # Create README.md from template
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    template_path = os.path.join(script_dir, "..", "templates", "README.md")
+    readme_path = os.path.join(full_path, "README.md")
+    
+    try:
+        with open(template_path, 'r') as template_file:
+            template_content = template_file.read()
+        
+        # Replace placeholders in template
+        readme_content = template_content.replace("{{IDEA_NAME}}", idea_name.replace("_", " ").title())
+        readme_content = readme_content.replace("{{IDEA_RAW}}", sys.argv[1])
+        readme_content = readme_content.replace("{{USER}}", os.getenv("USER", "unknown"))
+        readme_content = readme_content.replace("{{DATE}}", today.strftime("%A %b %d, %I:%M%p").lower())
+        
+        with open(readme_path, 'w') as readme_file:
+            readme_file.write(readme_content)
+            
+    except FileNotFoundError:
+        # If template doesn't exist, create a simple README
+        with open(readme_path, 'w') as readme_file:
+            readme_file.write(f"# {idea_name.replace('_', ' ').title()}\n\n")
+            readme_file.write(f"Created: {today.strftime('%Y-%m-%d')}\n\n")
+            readme_file.write("## Description\n\n")
+            readme_file.write("Add your exploration description here.\n")
+    
+    print(f"Created new daily exploration: {dir_name}")
+    print(f"Location: {full_path}")
+    return True
+
+
+def main():
+    """Main function to handle command line arguments."""
+    if len(sys.argv) != 2:
+        print("Usage: daily idea-name")
+        print("Example: daily machine_learning_experiment")
+        sys.exit(1)
+    
+    idea_name = sys.argv[1]
+    
+    # Replace hyphens with underscores for valid Python module names
+    idea_name = idea_name.replace("-", "_")
+    
+    # Validate idea name (basic check for valid identifier)
+    if not idea_name.replace("_", "").isalnum():
+        print("Error: idea-name must contain only letters, numbers, and hyphens/underscores")
+        sys.exit(1)
+    
+    create_daily_directory(idea_name)
+
+
+if __name__ == "__main__":
+    main()
